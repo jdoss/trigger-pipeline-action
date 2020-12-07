@@ -17,21 +17,22 @@ Create a [Buildkite API Access Token](https://buildkite.com/docs/apis/rest-api#a
 For example, the following workflow creates a new Buildkite build on every commit:
 
 ```workflow
-workflow "Trigger a Buildkite Build" {
-  on = "push"
-  resolves = ["Build"]
-}
+on:
+  push:
 
-action "Build" {
-  uses = "buildkite/trigger-pipeline-action@v1.2.0"
-  secrets = ["BUILDKITE_API_ACCESS_TOKEN"]
-  env = {
-    PIPELINE = "my-org/my-deploy-pipeline"
-    COMMIT = "HEAD"
-    BRANCH = "master"
-    MESSAGE = ":github: Triggered from a GitHub Action"
-  }
-}
+jobs:
+  run_pipeline:
+    name: Run Buildkite pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: buildkite/trigger-pipeline-action@v1.2.0
+        env:
+          BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
+          PIPELINE: "my-org/my-deploy-pipeline"
+          MESSAGE: ":github: Triggered from a GitHub Action"
+          COMMIT: "HEAD"
+          BRANCH: "master"
 ```
 
 ## Configuration Options
