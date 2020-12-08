@@ -72,7 +72,10 @@ on:
 jobs:
   run_pipeline:
     name: Run Buildkite pipeline
-    if: github.event.issue.pull_request != '' && contains(github.event.comment.body, '/build') && github.event.comment.author_association == 'MEMBER'
+    if: github.event.issue.pull_request != '' &&
+      startsWith(github.event.comment.body, '/build') &&
+      (github.event.comment.author_association == 'MEMBER' ||
+      github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
