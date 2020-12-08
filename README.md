@@ -56,7 +56,7 @@ jobs:
         env:
           BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
           PIPELINE: "my-org/my-deploy-pipeline"
-          MESSAGE: ":github: Triggered from a GitHub Action"
+          MESSAGE: ":github: Triggered from a GitHub Action via pull request to main"
           PULL_REQUEST_ID: $(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
 ```
 
@@ -69,15 +69,18 @@ on:
   issue_comment:
     types: [created]
 
+jobs:
   run_pipeline:
     name: Run Buildkite pipeline
     if: github.event.issue.pull_request != '' && contains(github.event.comment.body, '/build') && github.event.comment.author_association == 'MEMBER'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: jdoss/trigger-pipeline-action@v1.2.0
+      - uses: buildkite/trigger-pipeline-action@v1.2.0
         env:
           BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
+          PIPELINE: "my-org/my-deploy-pipeline"
+          MESSAGE: ":github: Triggered from a GitHub Action via pull request comment"
           PULL_REQUEST_ID: ${{github.event.issue.number}}
 ```
 
