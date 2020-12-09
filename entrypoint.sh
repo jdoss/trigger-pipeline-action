@@ -22,24 +22,46 @@ MESSAGE="${MESSAGE:-}"
 NAME=$(jq -r ".pusher.name" "$GITHUB_EVENT_PATH")
 EMAIL=$(jq -r ".pusher.email" "$GITHUB_EVENT_PATH")
 
-# Use jq’s --arg properly escapes string values for us
-JSON=$(
-  jq -c -n \
-    --arg COMMIT  "$COMMIT" \
-    --arg BRANCH  "$BRANCH" \
-    --arg MESSAGE "$MESSAGE" \
-    --arg NAME    "$NAME" \
-    --arg EMAIL   "$EMAIL" \
-    '{
-      "commit": $COMMIT,
-      "branch": $BRANCH,
-      "message": $MESSAGE,
-      "author": {
-        "name": $NAME,
-        "email": $EMAIL
-      }
-    }'
-)
+if [[ -z "${PULL_REQUEST_ID:-}" ]]; then
+
+  # Use jq’s --arg properly escapes string values for us
+  JSON=$(
+    jq -c -n \
+      --arg COMMIT  "$COMMIT" \
+      --arg BRANCH  "$BRANCH" \
+      --arg MESSAGE "$MESSAGE" \
+      --arg NAME    "$NAME" \
+      --arg EMAIL   "$EMAIL" \
+      '{
+        "commit": $COMMIT,
+        "branch": $BRANCH,
+        "message": $MESSAGE,
+        "author": {
+          "name": $NAME,
+          "email": $EMAIL
+        }
+      }'
+  )
+
+else
+
+  JSON=$(
+    jq -c -n \
+      --arg MESSAGE "$MESSAGE" \
+      --arg PULL_REQUEST_ID "$PULL_REQUEST_ID" \
+      --arg NAME    "$NAME" \
+      --arg EMAIL   "$EMAIL" \
+      '{
+        "message": $MESSAGE,
+        "pull_request_id": $PULL_REQUEST_ID,
+        "author": {
+          "name": $NAME,
+          "email": $EMAIL
+        }
+      }'
+  )
+
+fi
 
 # Merge in the build environment variables, if they specified any
 if [[ "${BUILD_ENV_VARS:-}" ]]; then

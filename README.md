@@ -17,21 +17,74 @@ Create a [Buildkite API Access Token](https://buildkite.com/docs/apis/rest-api#a
 For example, the following workflow creates a new Buildkite build on every commit:
 
 ```workflow
-workflow "Trigger a Buildkite Build" {
-  on = "push"
-  resolves = ["Build"]
-}
+on:
+  push:
 
-action "Build" {
-  uses = "buildkite/trigger-pipeline-action@v1.2.0"
-  secrets = ["BUILDKITE_API_ACCESS_TOKEN"]
-  env = {
-    PIPELINE = "my-org/my-deploy-pipeline"
-    COMMIT = "HEAD"
-    BRANCH = "master"
-    MESSAGE = ":github: Triggered from a GitHub Action"
-  }
-}
+jobs:
+  run_pipeline:
+    name: Run Buildkite pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: buildkite/trigger-pipeline-action@v1.2.0
+        env:
+          BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
+          PIPELINE: "my-org/my-deploy-pipeline"
+          MESSAGE: ":github: Triggered from a GitHub Action"
+          COMMIT: "HEAD"
+          BRANCH: "main"
+```
+
+Example workflow that creates a build based on pull request against main branch:
+
+```workflow
+name: Run Buildkite pipelines on pull request to main branch
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run_pipeline:
+    name: Run Buildkite pipeline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: buildkite/trigger-pipeline-action@v1.2.0
+        env:
+          BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
+          PIPELINE: "my-org/my-deploy-pipeline"
+          MESSAGE: ":github: Triggered from a GitHub Action via pull request to main"
+          PULL_REQUEST_ID: $(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+```
+
+Example workflow that creates a build based on `/build` being used in a comment in the PR by a organization member:
+
+```
+name: Run Buildkite pipelines on comment in PR
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run_pipeline:
+    name: Run Buildkite pipeline
+    if: github.event.issue.pull_request != '' &&
+      startsWith(github.event.comment.body, '/build') &&
+      (github.event.comment.author_association == 'MEMBER' ||
+      github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: buildkite/trigger-pipeline-action@v1.2.0
+        env:
+          BUILDKITE_API_ACCESS_TOKEN: ${{ secrets.buildkite_api_access_token }}
+          PIPELINE: "my-org/my-deploy-pipeline"
+          MESSAGE: ":github: Triggered from a GitHub Action via pull request comment"
+          PULL_REQUEST_ID: ${{github.event.issue.number}}
 ```
 
 ## Configuration Options
@@ -43,6 +96,7 @@ The following environment variable options can be configured:
 |PIPELINE|The pipline to create a build on, in the format `<org-slug>/<pipeline-slug>`||
 |COMMIT|The commit SHA of the build. Optional.|`$GITHUB_SHA`|
 |BRANCH|The branch of the build. Optional.|`$GITHUB_REF`|
+|PULL_REQUEST_ID|The PR of the build. Optional.||
 |MESSAGE|The message for the build. Optional.||
 |BUILD_ENV_VARS|Additional environment variables to set on the build, in JSON format. e.g. `{"FOO": "bar"}`. Optional. ||
 
